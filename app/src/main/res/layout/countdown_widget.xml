@@ -8,7 +8,9 @@
         android:id="@+id/countdown_textView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="12d35h34m67s"
+        android:gravity="center"
+        android:fontFamily="sans-serif-thin"
+        android:text="12d35h34m"
         android:textColor="@android:color/white"
-        android:textSize="24sp" />
+        android:textSize="56sp" />
 </FrameLayout>

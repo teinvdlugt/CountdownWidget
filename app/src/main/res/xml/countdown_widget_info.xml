@@ -3,6 +3,6 @@
     android:autoAdvanceViewId="@id/countdown_textView"
     android:initialLayout="@layout/countdown_widget"
     android:minHeight="40dp"
-    android:minWidth="110dp"
+    android:minWidth="250dp"
     android:resizeMode="none"
-    android:updatePeriodMillis="60000" />
+    android:updatePeriodMillis="0" />
