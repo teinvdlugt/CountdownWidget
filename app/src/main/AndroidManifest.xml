@@ -10,6 +10,7 @@
         <receiver android:name="CountdownWidgetProvider">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.teinproductions.tein.countdownwidget.COUNTDOWN_WIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
