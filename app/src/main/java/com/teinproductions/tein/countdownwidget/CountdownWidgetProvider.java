@@ -41,11 +41,16 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
 
         SpannableString ss = new SpannableString(diff);
         for (String letter : new String[]{"d", "h", "m"}) {
-            ss.setSpan(new RelativeSizeSpan(0.75f), diff.indexOf(letter), diff.indexOf(letter) + 1, 0);
+            ss.setSpan(new RelativeSizeSpan(0.65f), diff.indexOf(letter), diff.indexOf(letter) + 1, 0);
         }
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.countdown_widget);
         views.setTextViewText(R.id.countdown_textView, ss);
+
+        Intent configIntent = new Intent(context, ConfigurationActivity.class);
+        configIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, configIntent, 0);
+        views.setOnClickPendingIntent(R.id.root, pendingIntent);
 
         Log.d("WIDGET", "text: " + ss);
 
@@ -54,6 +59,8 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
 
     public static long getSavedMillis(Context context, int appWidgetId) throws SQLiteException {
         SQLiteDatabase db = context.openOrCreateDatabase(ConfigurationActivity.FILE_NAME, 0, null);
+        db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
+                "appwidgetid INTEGER, date TEXT);");
         //Cursor cursor = db.rawQuery("SELECT * FROM dates WHERE appwidgetid=" + appWidgetId, null);
         Cursor cursor = db.query("dates", new String[]{"appwidgetid", "date"},
                 "appwidgetid = " + appWidgetId, null, null, null, null);
