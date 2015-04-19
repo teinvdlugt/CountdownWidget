@@ -7,6 +7,9 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
 import android.util.Log;
@@ -18,19 +21,60 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
 
     public static final String COUNTDOWN_WIDGET_UPDATE = "com.teinproductions.tein.countdownwidget.COUNTDOWN_WIDGET_UPDATE";
 
-    private void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+    public static RemoteViews updateWidget(Context context, int appWidgetId) {
+        Log.d("WIDGET", "updateWidget");
+
         Calendar date = Calendar.getInstance();
-        // I/O
-        date.set(Calendar.YEAR, 2015);
-        date.set(Calendar.MONTH, Calendar.MAY);
-        date.set(Calendar.DAY_OF_MONTH, 28);
-        date.set(Calendar.HOUR_OF_DAY, 0);
-        date.set(Calendar.MINUTE, 0);
-        date.setTimeInMillis(date.getTimeInMillis()); // for log format
+        try {
+            long timeMillis = getSavedMillis(context, appWidgetId);
+            date.setTimeInMillis(timeMillis);
+        } catch (SQLiteException e) {
+            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.countdown_widget);
+            views.setTextViewText(R.id.countdown_textView, "No date set");
+            return views;
+        }
 
         Calendar current = Calendar.getInstance();
         current.setTimeInMillis(System.currentTimeMillis());
 
+        String diff = diffInString(current, date);
+
+        SpannableString ss = new SpannableString(diff);
+        for (String letter : new String[]{"d", "h", "m"}) {
+            ss.setSpan(new RelativeSizeSpan(0.75f), diff.indexOf(letter), diff.indexOf(letter) + 1, 0);
+        }
+
+        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.countdown_widget);
+        views.setTextViewText(R.id.countdown_textView, ss);
+
+        Log.d("WIDGET", "text: " + ss);
+
+        return views;
+    }
+
+    public static long getSavedMillis(Context context, int appWidgetId) throws SQLiteException {
+        SQLiteDatabase db = context.openOrCreateDatabase(ConfigurationActivity.FILE_NAME, 0, null);
+        //Cursor cursor = db.rawQuery("SELECT * FROM dates WHERE appwidgetid=" + appWidgetId, null);
+        Cursor cursor = db.query("dates", new String[]{"appwidgetid", "date"},
+                "appwidgetid = " + appWidgetId, null, null, null, null);
+
+        if (cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()) {
+            int dateColumn = cursor.getColumnIndex("date");
+            long toReturn = Long.parseLong(cursor.getString(dateColumn));
+            cursor.close();
+            db.close();
+            return toReturn;
+        }
+
+        Log.d("WIDGET", "ERROR WITH DATABASE");
+        if (cursor != null) {
+            cursor.close();
+        }
+        db.close();
+        return 0;
+    }
+
+    public static String diffInString(Calendar current, Calendar date) {
         Log.d("WIDGET", date.toString());
         Log.d("WIDGET", current.toString());
 
@@ -50,18 +94,7 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         final int MINUTES = diff.get(Calendar.MINUTE);
         Log.d("WIDGET", "MINUTES = " + MINUTES);
 
-        String string = DAYS + "d" + HOURS + "h" + MINUTES + "m";
-        SpannableString ss = new SpannableString(string);
-        for (String letter : new String[]{"d", "h", "m"}) {
-            ss.setSpan(new RelativeSizeSpan(0.50f), string.indexOf(letter), string.indexOf(letter) + 1, 0);
-        }
-
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.countdown_widget);
-        views.setTextViewText(R.id.countdown_textView, ss);
-
-        Log.d("WIDGET", "text: " + ss);
-
-        appWidgetManager.updateAppWidget(appWidgetId, views);
+        return DAYS + "d" + HOURS + "h" + MINUTES + "m";
     }
 
     @Override
@@ -72,7 +105,8 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
             AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
             int[] appWidgetIds = appWidgetManager.getAppWidgetIds(componentName);
             for (int appWidgetId : appWidgetIds) {
-                updateWidget(context, appWidgetManager, appWidgetId);
+                RemoteViews views = updateWidget(context, appWidgetId);
+                appWidgetManager.updateAppWidget(appWidgetId, views);
             }
         }
     }
@@ -81,9 +115,6 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
     public void onEnabled(Context context) {
         super.onEnabled(context);
         Log.d("WIDGET", "onEnabled");
-
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setRepeating(AlarmManager.RTC, System.currentTimeMillis() + 1000, 60000, getPendingIntent(context));
     }
 
     @Override
@@ -94,7 +125,7 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         alarmManager.cancel(getPendingIntent(context));
     }
 
-    private PendingIntent getPendingIntent(Context context) {
+    public static PendingIntent getPendingIntent(Context context) {
         Intent intent = new Intent(COUNTDOWN_WIDGET_UPDATE);
         return PendingIntent.getBroadcast(context, 123456789, intent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
