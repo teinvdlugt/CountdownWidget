@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Countdown Widget</string>
+    <string name="pick_date">Pick date</string>
+    <string name="pick_time">Pick time</string>
+    <string name="apply">Apply</string>
+    <string name="cancel">Cancel</string>
+    <string name="set_date_and_time">Set date and time:</string>
 </resources>

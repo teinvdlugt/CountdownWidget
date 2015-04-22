@@ -10,7 +10,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -20,7 +21,7 @@ import android.widget.TimePicker;
 
 import java.util.Calendar;
 
-public class ConfigurationActivity extends ActionBarActivity {
+public class ConfigurationActivity extends AppCompatActivity {
 
     static final String FILE_NAME = "dates";
 
@@ -33,6 +34,7 @@ public class ConfigurationActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_configuration);
+        setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
 
         // If the Activity is dismissed, the widget mustn't update
         setResult(RESULT_CANCELED);
@@ -139,6 +141,11 @@ public class ConfigurationActivity extends ActionBarActivity {
         Intent result = new Intent();
         result.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
         setResult(RESULT_OK, result);
+        finish();
+    }
+
+    public void onClickCancel(View view) {
+        setResult(RESULT_CANCELED);
         finish();
     }
 }

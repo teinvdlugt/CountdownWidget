@@ -4,37 +4,82 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <LinearLayout
-        style="?android:attr/buttonBarStyle"
+    <android.support.v7.widget.Toolbar
+        android:elevation="6dp"
+        android:id="@+id/toolbar"
+        style="@style/ToolbarStyle"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:layout_height="wrap_content" />
 
-        <Button
-            android:id="@+id/pick_date_button"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:onClick="onClickPickDate"
-            android:text="Pick date" />
-
-        <Button
-            android:id="@+id/pick_time_button"
-            style="?android:attr/buttonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:onClick="onClickPickTime"
-            android:text="Pick time" />
-
-    </LinearLayout>
-
-    <Button
-        android:id="@+id/apply_button"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:onClick="onClickApply"
-        android:text="Apply" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingBottom="@dimen/activity_vertical_margin"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:paddingTop="@dimen/activity_vertical_margin">
 
+        <TextView
+            android:id="@+id/setDateAndTimeTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/set_date_and_time"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
+
+        <LinearLayout
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/setDateAndTimeTextView"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/pick_date_button"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onClickPickDate"
+                android:text="@string/pick_date" />
+
+            <Button
+                android:id="@+id/pick_time_button"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onClickPickTime"
+                android:text="@string/pick_time" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/cancel_button"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onClickCancel"
+                android:text="@string/cancel" />
+
+            <Button
+                android:id="@+id/apply_button"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="onClickApply"
+                android:text="@string/apply" />
+
+        </LinearLayout>
+    </RelativeLayout>
 </LinearLayout>
