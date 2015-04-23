@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
 import android.util.Log;
+import android.view.View;
 import android.widget.RemoteViews;
 
 import java.util.Calendar;
@@ -22,18 +23,14 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
 
     public static final String COUNTDOWN_WIDGET_UPDATE = "com.teinproductions.tein.countdownwidget.COUNTDOWN_WIDGET_UPDATE";
 
-    public static RemoteViews updateWidget(Context context, int appWidgetId) {
-        Log.d("WIDGET", "updateWidget");
+    public static RemoteViews updateWidget(Context context, int appWidgetId) throws NullPointerException, SQLiteException {
+        Countdown countdown = fetchValues(context, appWidgetId);
+        final boolean showName = countdown.isShowName();
+        final String name = countdown.getName();
+        final long millis = countdown.getMillis();
 
         Calendar date = Calendar.getInstance();
-        try {
-            long timeMillis = getSavedMillis(context, appWidgetId);
-            date.setTimeInMillis(timeMillis);
-        } catch (SQLiteException e) {
-            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.countdown_widget);
-            views.setTextViewText(R.id.countdown_textView, "No date set");
-            return views;
-        }
+        date.setTimeInMillis(millis);
 
         Calendar current = Calendar.getInstance();
         current.setTimeInMillis(System.currentTimeMillis());
@@ -46,6 +43,8 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         }
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.countdown_widget);
+        views.setViewVisibility(R.id.name_textView, showName ? View.VISIBLE : View.GONE);
+        views.setTextViewText(R.id.name_textView, name);
         views.setTextViewText(R.id.countdown_textView, ss);
 
         Intent configIntent = new Intent(context, ConfigurationActivity.class);
@@ -55,56 +54,62 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, configIntent, 0);
         views.setOnClickPendingIntent(R.id.root, pendingIntent);
 
-        Log.d("WIDGET", "text: " + ss);
-
         return views;
     }
 
-    public static long getSavedMillis(Context context, int appWidgetId) throws SQLiteException {
+    public static Countdown fetchValues(Context context, int appWidgetId) {
         SQLiteDatabase db = context.openOrCreateDatabase(ConfigurationActivity.FILE_NAME, 0, null);
         db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
-                "appwidgetid INTEGER, date TEXT);");
-        //Cursor cursor = db.rawQuery("SELECT * FROM dates WHERE appwidgetid=" + appWidgetId, null);
-        Cursor cursor = db.query("dates", new String[]{"appwidgetid", "date"},
+                "appwidgetid INTEGER, date TEXT, name TEXT, showName INTEGER);");
+        Cursor cursor = db.query("dates", new String[]{"appwidgetid", "date", "name", "showName"},
                 "appwidgetid = " + appWidgetId, null, null, null, null);
 
         if (cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()) {
             int dateColumn = cursor.getColumnIndex("date");
-            long toReturn = Long.parseLong(cursor.getString(dateColumn));
+            int nameColumn = cursor.getColumnIndex("name");
+            int showNameColumn = cursor.getColumnIndex("showName");
+
+            long millis = Long.parseLong(cursor.getString(dateColumn));
+            String name = cursor.getString(nameColumn);
+            boolean showName = cursor.getInt(showNameColumn) == 1;
+
+            Countdown toReturn = new Countdown(name, showName, millis);
+
             cursor.close();
             db.close();
             return toReturn;
         }
 
-        Log.d("WIDGET", "ERROR WITH DATABASE");
         if (cursor != null) {
             cursor.close();
         }
         db.close();
-        return 0;
+        return null;
     }
 
     public static String diffInString(Calendar current, Calendar date) {
-        Log.d("WIDGET", date.toString());
-        Log.d("WIDGET", current.toString());
+        long diffInMillis = date.getTimeInMillis() - current.getTimeInMillis();
+        boolean negative = false;
 
-        final long diffInMillis = date.getTimeInMillis() - current.getTimeInMillis();
+        if (diffInMillis < 0) {
+            diffInMillis = -diffInMillis;
+            negative = true;
+        }
+
         Calendar diff = Calendar.getInstance();
         diff.setTimeInMillis(diffInMillis);
 
         final int YEARS = diff.get(Calendar.YEAR) - 1970;
-        Log.d("WIDGET", "YEARS = " + YEARS);
         final int YEARS_IN_DAYS = (int) (YEARS * 365.242);
-        Log.d("WIDGET", "YEARS_IN_DAYS = " + YEARS_IN_DAYS);
-        final int DAYS = diff.get(Calendar.DAY_OF_YEAR) + YEARS_IN_DAYS;
-        Log.d("WIDGET", "DAY_OF_YEAR = " + diff.get(Calendar.DAY_OF_YEAR));
-        Log.d("WIDGET", "DAYS = " + DAYS);
+        final int DAYS = diff.get(Calendar.DAY_OF_YEAR) + YEARS_IN_DAYS - 1;
         final int HOURS = diff.get(Calendar.HOUR_OF_DAY);
-        Log.d("WIDGET", "HOURS = " + HOURS);
         final int MINUTES = diff.get(Calendar.MINUTE);
-        Log.d("WIDGET", "MINUTES = " + MINUTES);
 
-        return DAYS + "d" + HOURS + "h" + MINUTES + "m";
+        if (negative) {
+            return "-" + DAYS + "d" + HOURS + "h" + MINUTES + "m";
+        } else {
+            return DAYS + "d" + HOURS + "h" + MINUTES + "m";
+        }
     }
 
     @Override
@@ -124,13 +129,11 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
     @Override
     public void onEnabled(Context context) {
         super.onEnabled(context);
-        Log.d("WIDGET", "onEnabled");
     }
 
     @Override
     public void onDisabled(Context context) {
         super.onDisabled(context);
-        Log.d("WIDGET", "onDisabled");
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         alarmManager.cancel(getPendingIntent(context));
     }

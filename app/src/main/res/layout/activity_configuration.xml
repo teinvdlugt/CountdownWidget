@@ -5,11 +5,11 @@
     android:orientation="vertical">
 
     <android.support.v7.widget.Toolbar
-        android:elevation="6dp"
         android:id="@+id/toolbar"
         style="@style/ToolbarStyle"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:elevation="6dp" />
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -21,18 +21,26 @@
         android:paddingTop="@dimen/activity_vertical_margin">
 
         <TextView
-            android:id="@+id/setDateAndTimeTextView"
+            android:id="@+id/createNew_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/set_date_and_time"
+            android:text="@string/provide_time_in_utc"
             android:textAppearance="?android:attr/textAppearanceMedium" />
 
+        <EditText
+            android:id="@+id/name_editText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/createNew_button"
+            android:hint="@string/name"
+            android:inputType="textCapSentences" />
 
         <LinearLayout
+            android:id="@+id/pickDate_pickTime_layout"
             style="?android:attr/buttonBarStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/setDateAndTimeTextView"
+            android:layout_below="@id/name_editText"
             android:orientation="horizontal">
 
             <Button
@@ -52,34 +60,51 @@
                 android:layout_weight="1"
                 android:onClick="onClickPickTime"
                 android:text="@string/pick_time" />
-
         </LinearLayout>
 
-        <LinearLayout
-            style="?android:attr/buttonBarStyle"
-            android:layout_width="match_parent"
+        <CheckBox
+            android:id="@+id/showName_checkBox"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:orientation="horizontal">
+            android:layout_below="@id/pickDate_pickTime_layout"
+            android:checked="true"
+            android:text="@string/show_name" />
 
-            <Button
-                android:id="@+id/cancel_button"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="onClickCancel"
-                android:text="@string/cancel" />
+        <!--<TextView
+            android:layout_marginTop="16dp"
+            android:id="@+id/chooseOneFromHereTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/showName_checkBox"
+            android:text="@string/or_choose_one_of_these"
+            android:textAppearance="?android:attr/textAppearanceMedium" />-->
 
-            <Button
-                android:id="@+id/apply_button"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="onClickApply"
-                android:text="@string/apply" />
-
-        </LinearLayout>
     </RelativeLayout>
+
+    <LinearLayout
+        style="?android:attr/buttonBarStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/cancel_button"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="onClickCancel"
+            android:text="@string/cancel" />
+
+        <Button
+            android:id="@+id/apply_button"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:onClick="onClickApply"
+            android:text="@string/apply" />
+
+    </LinearLayout>
+
 </LinearLayout>

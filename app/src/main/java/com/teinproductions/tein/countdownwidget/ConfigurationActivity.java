@@ -15,18 +15,26 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.DatePicker;
+import android.widget.EditText;
 import android.widget.RemoteViews;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import java.util.Calendar;
 
 public class ConfigurationActivity extends AppCompatActivity {
 
-    static final String FILE_NAME = "dates";
+    static final String FILE_NAME = "database";
 
     int appWidgetId;
+    String name;
+    boolean showName;
+
     Button pickDate, pickTime;
+    EditText nameET;
+    CheckBox showNameCheckBox;
 
     Calendar date = Calendar.getInstance();
 
@@ -41,35 +49,39 @@ public class ConfigurationActivity extends AppCompatActivity {
 
         pickDate = (Button) findViewById(R.id.pick_date_button);
         pickTime = (Button) findViewById(R.id.pick_time_button);
+        nameET = (EditText) findViewById(R.id.name_editText);
+        showNameCheckBox = (CheckBox) findViewById(R.id.showName_checkBox);
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             appWidgetId = extras.getInt(
                     AppWidgetManager.EXTRA_APPWIDGET_ID,
                     AppWidgetManager.INVALID_APPWIDGET_ID);
-            Log.d("WIDGET", "invalid appwidget id: " + (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID));
         }
 
-        restoreDate();
+        restoreValues();
     }
 
-    private void restoreDate() {
+    private void restoreValues() {
         SQLiteDatabase db = openOrCreateDatabase(FILE_NAME, 0, null);
         db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
-                "appwidgetid INTEGER, date TEXT);");
-        Cursor cursor = db.query("dates", new String[]{"appwidgetid", "date"},
+                "appwidgetid INTEGER, date TEXT, name TEXT, showName INTEGER);");
+        Cursor cursor = db.query("dates", new String[]{"appwidgetid", "date", "name", "showName"},
                 "appwidgetid = " + appWidgetId, null, null, null, null);
 
-        Log.d("QWERTY", "" + cursor.getCount());
-        Log.d("QWERTY", "" + appWidgetId);
-
         if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-            Log.d("WIDGET", "restoreDate: cursor.getCount > 0");
             int dateColumn = cursor.getColumnIndex("date");
+            int nameColumn = cursor.getColumnIndex("name");
+            int showNameColumn = cursor.getColumnIndex("showName");
+
             long millis = Long.parseLong(cursor.getString(dateColumn));
             date.setTimeInMillis(millis);
+            name = cursor.getString(nameColumn);
+            showName = cursor.getInt(showNameColumn) != 0;
+
+            nameET.setText(name);
+            showNameCheckBox.setChecked(showName);
         } else {
-            Log.d("WIDGET", "restoreDate: setting to current");
             date.setTimeInMillis(System.currentTimeMillis());
         }
 
@@ -107,29 +119,68 @@ public class ConfigurationActivity extends AppCompatActivity {
     }
 
     private void updateButtonTexts() {
+        // Date
         int YEAR = date.get(Calendar.YEAR);
         int MONTH = date.get(Calendar.MONTH) + 1;
         int DAY = date.get(Calendar.DAY_OF_MONTH);
         pickDate.setText(DAY + " / " + MONTH + " / " + YEAR);
 
+        // Time
         int HOUR = date.get(Calendar.HOUR_OF_DAY);
         int MINUTE = date.get(Calendar.MINUTE);
-        pickTime.setText(HOUR + ":" + MINUTE);
+        String hourStr = Integer.toString(HOUR);
+        String minuteStr = Integer.toString(MINUTE);
+
+        if (hourStr.length() < 2) {
+            hourStr = "0" + hourStr;
+        }
+        if (minuteStr.length() < 2) {
+            minuteStr = "0" + minuteStr;
+        }
+
+        pickTime.setText(hourStr + ":" + minuteStr);
     }
 
     public void onClickApply(View view) {
+        if (nameET.getText().toString().trim().length() < 1) {
+            Toast.makeText(this, getString(R.string.please_provide_a_name), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final String name = nameET.getText().toString();
+        final boolean showName = showNameCheckBox.isChecked();
+        final long millis = date.getTimeInMillis();
+
+        apply(name, showName, millis);
+    }
+
+    private void apply(String name, boolean showName, long millis) {
+        // ALTER DATABASE
         SQLiteDatabase db = openOrCreateDatabase(FILE_NAME, 0, null);
         db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
-                "appwidgetid INTEGER, date TEXT);");
-        db.delete("dates", "appwidgetid=" + appWidgetId, null); // Delete old value
+                "appwidgetid INTEGER, date TEXT, name TEXT, showName INTEGER);");
+        db.delete("dates", "appwidgetid=" + appWidgetId, null);
+
         ContentValues values = new ContentValues();
         values.put("appwidgetid", appWidgetId);
-        values.put("date", Long.toString(date.getTimeInMillis()));
+        values.put("date", Long.toString(millis));
+        values.put("name", name);
+        values.put("showName", showName ? 1 : 0);
+
         db.insert("dates", null, values);
         db.close();
 
-        Log.d("WIDGET", "onClickApply: " + date.getTimeInMillis());
+        // UPDATE WIDGET
+        setAlarm();
 
+        // FINISH
+        Intent result = new Intent();
+        result.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        setResult(RESULT_OK, result);
+        finish();
+    }
+
+    private void setAlarm() {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
         RemoteViews views = CountdownWidgetProvider.updateWidget(this, appWidgetId);
         appWidgetManager.updateAppWidget(appWidgetId, views);
@@ -137,11 +188,6 @@ public class ConfigurationActivity extends AppCompatActivity {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         alarmManager.setRepeating(AlarmManager.RTC,
                 System.currentTimeMillis() + 60000, 60000, CountdownWidgetProvider.getPendingIntent(this));
-
-        Intent result = new Intent();
-        result.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-        setResult(RESULT_OK, result);
-        finish();
     }
 
     public void onClickCancel(View view) {

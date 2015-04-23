@@ -5,4 +5,10 @@
     <string name="apply">Apply</string>
     <string name="cancel">Cancel</string>
     <string name="set_date_and_time">Set date and time:</string>
+    <string name="or_choose_one_of_these">Or choose one of these:</string>
+    <string name="name">Name</string>
+    <string name="create_new">Create new:</string>
+    <string name="show_name">Show name</string>
+    <string name="please_provide_a_name">Please provide a name</string>
+    <string name="provide_time_in_utc">Be sure to provide the time in UTC</string>
 </resources>
