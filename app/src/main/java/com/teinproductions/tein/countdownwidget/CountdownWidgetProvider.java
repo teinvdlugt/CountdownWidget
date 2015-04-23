@@ -20,7 +20,7 @@ import java.util.Calendar;
 
 public class CountdownWidgetProvider extends AppWidgetProvider {
 
-    public static final String COUNTDOWN_WIDGET_UPDATE = "com.teinproductions.tein.countdownwidget.COUNTDOWN_WIDGET_UPDATE";
+    private static final String COUNTDOWN_WIDGET_UPDATE = "com.teinproductions.tein.countdownwidget.COUNTDOWN_WIDGET_UPDATE";
 
     public static RemoteViews updateWidget(Context context, int appWidgetId) throws NullPointerException, SQLiteException {
         Countdown countdown = fetchValues(context, appWidgetId);
@@ -31,6 +31,7 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         final boolean showDays = countdown.isShowDays();
         final boolean showHours = countdown.isShowHours();
         final boolean showMinutes = countdown.isShowMinutes();
+        final boolean useCapitals = countdown.isUseCapitals();
 
         Calendar date = Calendar.getInstance();
         date.setTimeInMillis(countdown.getMillis());
@@ -38,10 +39,10 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         Calendar current = Calendar.getInstance();
         current.setTimeInMillis(System.currentTimeMillis());
 
-        String diff = diffInString(current, date, showDays, showHours, showMinutes);
+        String diff = diffInString(current, date, showDays, showHours, showMinutes, useCapitals);
 
         SpannableString ss = new SpannableString(diff);
-        for (String letter : new String[]{"d", "h", "m"}) {
+        for (String letter : new String[]{"d", "h", "m", "D", "H", "M"}) {
             if (diff.contains(letter)) {
                 ss.setSpan(new RelativeSizeSpan(0.65f), diff.indexOf(letter), diff.indexOf(letter) + 1, 0);
             }
@@ -62,7 +63,7 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         return views;
     }
 
-    public static Countdown fetchValues(Context context, int appWidgetId) {
+    private static Countdown fetchValues(Context context, int appWidgetId) {
         SQLiteDatabase db = ConfigurationActivity.getDatabase(context);
         Cursor cursor = ConfigurationActivity.queryEverything(db, appWidgetId);
 
@@ -73,7 +74,8 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         return toReturn;
     }
 
-    public static String diffInString(Calendar current, Calendar date, boolean showDays, boolean showHours, boolean showMinutes) {
+    private static String diffInString(Calendar current, Calendar date, boolean showDays,
+                                      boolean showHours, boolean showMinutes, boolean useCapitals) {
         long diffInMillis = date.getTimeInMillis() - current.getTimeInMillis();
         boolean negative = false;
 
@@ -94,11 +96,15 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         if (!showDays) HOURS = HOURS + DAYS * 24;
         if (!showHours) MINUTES = MINUTES + HOURS * 60;
 
+        String days = useCapitals ? "D" : "d";
+        String hours = useCapitals ? "H" : "h";
+        String minutes = useCapitals ? "M" : "m";
+
         StringBuilder result = new StringBuilder();
         if (negative) result.append("-");
-        if (showDays) result.append(DAYS).append("d");
-        if (showHours) result.append(HOURS).append("h");
-        if (showMinutes) result.append(MINUTES).append("m");
+        if (showDays) result.append(DAYS).append(days);
+        if (showHours) result.append(HOURS).append(hours);
+        if (showMinutes) result.append(MINUTES).append(minutes);
         return result.toString();
     }
 

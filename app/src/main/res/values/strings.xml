@@ -12,4 +12,6 @@
     <string name="days">Days</string>
     <string name="hours">Hours</string>
     <string name="minutes">Minutes</string>
+    <string name="capital_letters">Capital Letters</string>
+    <string name="no_date_set">No date set</string>
 </resources>

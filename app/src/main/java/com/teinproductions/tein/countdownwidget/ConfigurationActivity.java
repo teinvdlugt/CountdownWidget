@@ -28,13 +28,13 @@ public class ConfigurationActivity extends AppCompatActivity {
 
     static final String FILE_NAME = "database";
 
-    int appWidgetId;
+    private int appWidgetId;
 
-    Button pickDate, pickTime;
-    EditText nameET;
-    CheckBox showNameCheckBox, showDaysCheckBox, showHoursCheckBox, showMinutesCheckBox;
+    private Button pickDate, pickTime;
+    private EditText nameET;
+    private CheckBox showNameCheckBox, showDaysCheckBox, showHoursCheckBox, showMinutesCheckBox, capitalsCheckBox;
 
-    Calendar date = Calendar.getInstance();
+    private final Calendar date = Calendar.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +52,7 @@ public class ConfigurationActivity extends AppCompatActivity {
         showDaysCheckBox = (CheckBox) findViewById(R.id.showDays_checkBox);
         showHoursCheckBox = (CheckBox) findViewById(R.id.showHours_checkBox);
         showMinutesCheckBox = (CheckBox) findViewById(R.id.showMinutes_checkBox);
+        capitalsCheckBox = (CheckBox) findViewById(R.id.capitals_checkBox);
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
@@ -77,6 +78,7 @@ public class ConfigurationActivity extends AppCompatActivity {
             showDaysCheckBox.setChecked(countdown.isShowDays());
             showHoursCheckBox.setChecked(countdown.isShowHours());
             showMinutesCheckBox.setChecked(countdown.isShowMinutes());
+            capitalsCheckBox.setChecked(countdown.isUseCapitals());
         } else {
             date.setTimeInMillis(System.currentTimeMillis());
         }
@@ -148,17 +150,18 @@ public class ConfigurationActivity extends AppCompatActivity {
         final boolean showDays = showDaysCheckBox.isChecked();
         final boolean showHours = showHoursCheckBox.isChecked();
         final boolean showMinutes = showMinutesCheckBox.isChecked();
+        final boolean useCapitals = capitalsCheckBox.isChecked();
 
-        apply(name, millis, showName, showDays, showHours, showMinutes);
+        apply(name, millis, showName, showDays, showHours, showMinutes, useCapitals);
     }
 
     private void apply(String name, long millis, boolean showName,
-                       boolean showDays, boolean showHours, boolean showMinutes) {
+                       boolean showDays, boolean showHours, boolean showMinutes, boolean useCapitals) {
         // ALTER DATABASE
         SQLiteDatabase db = getDatabase(this);
         db.delete("dates", "appwidgetid=" + appWidgetId, null);
         db.insert("dates", null, createContentValues(
-                appWidgetId, name, millis, showName, showDays, showHours, showMinutes));
+                appWidgetId, name, millis, showName, showDays, showHours, showMinutes, useCapitals));
         db.close();
 
         // UPDATE WIDGET
@@ -190,7 +193,7 @@ public class ConfigurationActivity extends AppCompatActivity {
         SQLiteDatabase db = context.openOrCreateDatabase(FILE_NAME, 0, null);
         db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
                 "appwidgetid INTEGER, date TEXT, name TEXT, showName INTEGER, " +
-                "showDays INTEGER, showHours INTEGER, showMinutes INTEGER);");
+                "showDays INTEGER, showHours INTEGER, showMinutes INTEGER, useCapitals INTEGER);");
         return db;
     }
 
@@ -209,6 +212,7 @@ public class ConfigurationActivity extends AppCompatActivity {
             int showDaysColumn = cursor.getColumnIndex("showDays");
             int showHoursColumn = cursor.getColumnIndex("showHours");
             int showMinutesColumn = cursor.getColumnIndex("showMinutes");
+            int useCapitalsColumn = cursor.getColumnIndex("useCapitals");
 
             long millis = Long.parseLong(cursor.getString(dateColumn));
             String name = cursor.getString(nameColumn);
@@ -216,15 +220,16 @@ public class ConfigurationActivity extends AppCompatActivity {
             boolean showDays = cursor.getInt(showDaysColumn) != 0;
             boolean showHours = cursor.getInt(showHoursColumn) != 0;
             boolean showMinutes = cursor.getInt(showMinutesColumn) != 0;
+            boolean useCapitals = cursor.getInt(useCapitalsColumn) != 0;
 
-            return new Countdown(name, showName, showDays, showHours, showMinutes, millis);
+            return new Countdown(name, showName, showDays, showHours, showMinutes, useCapitals, millis);
         } catch (CursorIndexOutOfBoundsException e) {
             return null;
         }
     }
 
     public static ContentValues createContentValues(int appWidgetId, String name, long millis, boolean showName,
-                                                    boolean showDays, boolean showHours, boolean showMinutes) {
+                                                    boolean showDays, boolean showHours, boolean showMinutes, boolean useCapitals) {
         ContentValues values = new ContentValues();
         values.put("appwidgetid", appWidgetId);
         values.put("date", Long.toString(millis));
@@ -233,6 +238,7 @@ public class ConfigurationActivity extends AppCompatActivity {
         values.put("showDays", showDays ? 1 : 0);
         values.put("showHours", showHours ? 1 : 0);
         values.put("showMinutes", showMinutes ? 1 : 0);
+        values.put("useCapitals", useCapitals ? 1 : 0);
 
         return values;
     }

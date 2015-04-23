@@ -23,7 +23,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-light"
-        android:text="No date set"
+        android:text="@string/no_date_set"
         android:textColor="@android:color/white"
         android:textSize="56sp"
         tools:textColor="@android:color/black" />

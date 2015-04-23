@@ -95,6 +95,14 @@
             android:checked="true"
             android:text="@string/minutes" />
 
+        <CheckBox
+            android:id="@+id/capitals_checkBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:checked="false"
+            android:text="@string/capital_letters" />
+
     </LinearLayout>
 
     <LinearLayout
