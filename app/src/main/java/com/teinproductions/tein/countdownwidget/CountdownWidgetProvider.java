@@ -24,6 +24,8 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
 
     public static RemoteViews updateWidget(Context context, int appWidgetId) throws NullPointerException, SQLiteException {
         Countdown countdown = fetchValues(context, appWidgetId);
+        if (countdown == null) return null;
+
         final boolean showName = countdown.isShowName();
         final String name = countdown.getName();
         final boolean showDays = countdown.isShowDays();

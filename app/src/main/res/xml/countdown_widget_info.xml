@@ -4,6 +4,8 @@
     android:configure="com.teinproductions.tein.countdownwidget.ConfigurationActivity"
     android:initialLayout="@layout/countdown_widget"
     android:minHeight="40dp"
-    android:minWidth="250dp"
-    android:resizeMode="none"
+    android:minWidth="180dp"
+    android:minResizeHeight="40dp"
+    android:minResizeWidth="110dp"
+    android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0" />

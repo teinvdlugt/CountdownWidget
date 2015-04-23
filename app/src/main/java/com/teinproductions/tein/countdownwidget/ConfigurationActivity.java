@@ -8,6 +8,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.database.CursorIndexOutOfBoundsException;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -70,6 +71,7 @@ public class ConfigurationActivity extends AppCompatActivity {
             Countdown countdown = fromCursor(cursor);
 
             nameET.setText(countdown.getName());
+            nameET.setSelection(nameET.length());
             date.setTimeInMillis(countdown.getMillis());
             showNameCheckBox.setChecked(countdown.isShowName());
             showDaysCheckBox.setChecked(countdown.isShowDays());
@@ -198,23 +200,27 @@ public class ConfigurationActivity extends AppCompatActivity {
     }
 
     public static Countdown fromCursor(Cursor cursor) {
-        cursor.moveToFirst();
+        try {
+            cursor.moveToFirst();
 
-        int dateColumn = cursor.getColumnIndex("date");
-        int nameColumn = cursor.getColumnIndex("name");
-        int showNameColumn = cursor.getColumnIndex("showName");
-        int showDaysColumn = cursor.getColumnIndex("showDays");
-        int showHoursColumn = cursor.getColumnIndex("showHours");
-        int showMinutesColumn = cursor.getColumnIndex("showMinutes");
+            int dateColumn = cursor.getColumnIndex("date");
+            int nameColumn = cursor.getColumnIndex("name");
+            int showNameColumn = cursor.getColumnIndex("showName");
+            int showDaysColumn = cursor.getColumnIndex("showDays");
+            int showHoursColumn = cursor.getColumnIndex("showHours");
+            int showMinutesColumn = cursor.getColumnIndex("showMinutes");
 
-        long millis = Long.parseLong(cursor.getString(dateColumn));
-        String name = cursor.getString(nameColumn);
-        boolean showName = cursor.getInt(showNameColumn) != 0;
-        boolean showDays = cursor.getInt(showDaysColumn) != 0;
-        boolean showHours = cursor.getInt(showHoursColumn) != 0;
-        boolean showMinutes = cursor.getInt(showMinutesColumn) != 0;
+            long millis = Long.parseLong(cursor.getString(dateColumn));
+            String name = cursor.getString(nameColumn);
+            boolean showName = cursor.getInt(showNameColumn) != 0;
+            boolean showDays = cursor.getInt(showDaysColumn) != 0;
+            boolean showHours = cursor.getInt(showHoursColumn) != 0;
+            boolean showMinutes = cursor.getInt(showMinutesColumn) != 0;
 
-        return new Countdown(name, showName, showDays, showHours, showMinutes, millis);
+            return new Countdown(name, showName, showDays, showHours, showMinutes, millis);
+        } catch (CursorIndexOutOfBoundsException e) {
+            return null;
+        }
     }
 
     public static ContentValues createContentValues(int appWidgetId, String name, long millis, boolean showName,
