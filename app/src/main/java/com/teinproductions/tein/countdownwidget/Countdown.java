@@ -4,13 +4,40 @@ package com.teinproductions.tein.countdownwidget;
 public class Countdown {
 
     private String name;
-    private boolean showName;
+    private boolean showName, showDays, showHours, showMinutes;
     private long millis;
 
-    public Countdown(String name, boolean showName, long millis) {
+    public Countdown(String name, boolean showName, boolean showDays, boolean showHours, boolean showMinutes, long millis) {
         this.name = name;
         this.showName = showName;
+        this.showDays = showDays;
+        this.showHours = showHours;
+        this.showMinutes = showMinutes;
         this.millis = millis;
+    }
+
+    public boolean isShowDays() {
+        return showDays;
+    }
+
+    public void setShowDays(boolean showDays) {
+        this.showDays = showDays;
+    }
+
+    public boolean isShowHours() {
+        return showHours;
+    }
+
+    public void setShowHours(boolean showHours) {
+        this.showHours = showHours;
+    }
+
+    public boolean isShowMinutes() {
+        return showMinutes;
+    }
+
+    public void setShowMinutes(boolean showMinutes) {
+        this.showMinutes = showMinutes;
     }
 
     public String getName() {

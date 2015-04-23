@@ -12,7 +12,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -29,12 +28,10 @@ public class ConfigurationActivity extends AppCompatActivity {
     static final String FILE_NAME = "database";
 
     int appWidgetId;
-    String name;
-    boolean showName;
 
     Button pickDate, pickTime;
     EditText nameET;
-    CheckBox showNameCheckBox;
+    CheckBox showNameCheckBox, showDaysCheckBox, showHoursCheckBox, showMinutesCheckBox;
 
     Calendar date = Calendar.getInstance();
 
@@ -51,6 +48,9 @@ public class ConfigurationActivity extends AppCompatActivity {
         pickTime = (Button) findViewById(R.id.pick_time_button);
         nameET = (EditText) findViewById(R.id.name_editText);
         showNameCheckBox = (CheckBox) findViewById(R.id.showName_checkBox);
+        showDaysCheckBox = (CheckBox) findViewById(R.id.showDays_checkBox);
+        showHoursCheckBox = (CheckBox) findViewById(R.id.showHours_checkBox);
+        showMinutesCheckBox = (CheckBox) findViewById(R.id.showMinutes_checkBox);
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
@@ -63,31 +63,24 @@ public class ConfigurationActivity extends AppCompatActivity {
     }
 
     private void restoreValues() {
-        SQLiteDatabase db = openOrCreateDatabase(FILE_NAME, 0, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
-                "appwidgetid INTEGER, date TEXT, name TEXT, showName INTEGER);");
-        Cursor cursor = db.query("dates", new String[]{"appwidgetid", "date", "name", "showName"},
-                "appwidgetid = " + appWidgetId, null, null, null, null);
+        SQLiteDatabase db = getDatabase(this);
+        Cursor cursor = queryEverything(db, appWidgetId);
 
         if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-            int dateColumn = cursor.getColumnIndex("date");
-            int nameColumn = cursor.getColumnIndex("name");
-            int showNameColumn = cursor.getColumnIndex("showName");
+            Countdown countdown = fromCursor(cursor);
 
-            long millis = Long.parseLong(cursor.getString(dateColumn));
-            date.setTimeInMillis(millis);
-            name = cursor.getString(nameColumn);
-            showName = cursor.getInt(showNameColumn) != 0;
-
-            nameET.setText(name);
-            showNameCheckBox.setChecked(showName);
+            nameET.setText(countdown.getName());
+            date.setTimeInMillis(countdown.getMillis());
+            showNameCheckBox.setChecked(countdown.isShowName());
+            showDaysCheckBox.setChecked(countdown.isShowDays());
+            showHoursCheckBox.setChecked(countdown.isShowHours());
+            showMinutesCheckBox.setChecked(countdown.isShowMinutes());
         } else {
             date.setTimeInMillis(System.currentTimeMillis());
         }
 
         cursor.close();
         db.close();
-
         updateButtonTexts();
     }
 
@@ -148,26 +141,22 @@ public class ConfigurationActivity extends AppCompatActivity {
         }
 
         final String name = nameET.getText().toString();
-        final boolean showName = showNameCheckBox.isChecked();
         final long millis = date.getTimeInMillis();
+        final boolean showName = showNameCheckBox.isChecked();
+        final boolean showDays = showDaysCheckBox.isChecked();
+        final boolean showHours = showHoursCheckBox.isChecked();
+        final boolean showMinutes = showMinutesCheckBox.isChecked();
 
-        apply(name, showName, millis);
+        apply(name, millis, showName, showDays, showHours, showMinutes);
     }
 
-    private void apply(String name, boolean showName, long millis) {
+    private void apply(String name, long millis, boolean showName,
+                       boolean showDays, boolean showHours, boolean showMinutes) {
         // ALTER DATABASE
-        SQLiteDatabase db = openOrCreateDatabase(FILE_NAME, 0, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
-                "appwidgetid INTEGER, date TEXT, name TEXT, showName INTEGER);");
+        SQLiteDatabase db = getDatabase(this);
         db.delete("dates", "appwidgetid=" + appWidgetId, null);
-
-        ContentValues values = new ContentValues();
-        values.put("appwidgetid", appWidgetId);
-        values.put("date", Long.toString(millis));
-        values.put("name", name);
-        values.put("showName", showName ? 1 : 0);
-
-        db.insert("dates", null, values);
+        db.insert("dates", null, createContentValues(
+                appWidgetId, name, millis, showName, showDays, showHours, showMinutes));
         db.close();
 
         // UPDATE WIDGET
@@ -193,5 +182,52 @@ public class ConfigurationActivity extends AppCompatActivity {
     public void onClickCancel(View view) {
         setResult(RESULT_CANCELED);
         finish();
+    }
+
+    public static SQLiteDatabase getDatabase(Context context) {
+        SQLiteDatabase db = context.openOrCreateDatabase(FILE_NAME, 0, null);
+        db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
+                "appwidgetid INTEGER, date TEXT, name TEXT, showName INTEGER, " +
+                "showDays INTEGER, showHours INTEGER, showMinutes INTEGER);");
+        return db;
+    }
+
+    public static Cursor queryEverything(SQLiteDatabase db, int appWidgetId) {
+        return db.query("dates", null,
+                "appwidgetid = " + appWidgetId, null, null, null, null);
+    }
+
+    public static Countdown fromCursor(Cursor cursor) {
+        cursor.moveToFirst();
+
+        int dateColumn = cursor.getColumnIndex("date");
+        int nameColumn = cursor.getColumnIndex("name");
+        int showNameColumn = cursor.getColumnIndex("showName");
+        int showDaysColumn = cursor.getColumnIndex("showDays");
+        int showHoursColumn = cursor.getColumnIndex("showHours");
+        int showMinutesColumn = cursor.getColumnIndex("showMinutes");
+
+        long millis = Long.parseLong(cursor.getString(dateColumn));
+        String name = cursor.getString(nameColumn);
+        boolean showName = cursor.getInt(showNameColumn) != 0;
+        boolean showDays = cursor.getInt(showDaysColumn) != 0;
+        boolean showHours = cursor.getInt(showHoursColumn) != 0;
+        boolean showMinutes = cursor.getInt(showMinutesColumn) != 0;
+
+        return new Countdown(name, showName, showDays, showHours, showMinutes, millis);
+    }
+
+    public static ContentValues createContentValues(int appWidgetId, String name, long millis, boolean showName,
+                                                    boolean showDays, boolean showHours, boolean showMinutes) {
+        ContentValues values = new ContentValues();
+        values.put("appwidgetid", appWidgetId);
+        values.put("date", Long.toString(millis));
+        values.put("name", name);
+        values.put("showName", showName ? 1 : 0);
+        values.put("showDays", showDays ? 1 : 0);
+        values.put("showHours", showHours ? 1 : 0);
+        values.put("showMinutes", showMinutes ? 1 : 0);
+
+        return values;
     }
 }

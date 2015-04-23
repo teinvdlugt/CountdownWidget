@@ -13,7 +13,6 @@ import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
-import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -27,19 +26,23 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         Countdown countdown = fetchValues(context, appWidgetId);
         final boolean showName = countdown.isShowName();
         final String name = countdown.getName();
-        final long millis = countdown.getMillis();
+        final boolean showDays = countdown.isShowDays();
+        final boolean showHours = countdown.isShowHours();
+        final boolean showMinutes = countdown.isShowMinutes();
 
         Calendar date = Calendar.getInstance();
-        date.setTimeInMillis(millis);
+        date.setTimeInMillis(countdown.getMillis());
 
         Calendar current = Calendar.getInstance();
         current.setTimeInMillis(System.currentTimeMillis());
 
-        String diff = diffInString(current, date);
+        String diff = diffInString(current, date, showDays, showHours, showMinutes);
 
         SpannableString ss = new SpannableString(diff);
         for (String letter : new String[]{"d", "h", "m"}) {
-            ss.setSpan(new RelativeSizeSpan(0.65f), diff.indexOf(letter), diff.indexOf(letter) + 1, 0);
+            if (diff.contains(letter)) {
+                ss.setSpan(new RelativeSizeSpan(0.65f), diff.indexOf(letter), diff.indexOf(letter) + 1, 0);
+            }
         }
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.countdown_widget);
@@ -58,36 +61,17 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
     }
 
     public static Countdown fetchValues(Context context, int appWidgetId) {
-        SQLiteDatabase db = context.openOrCreateDatabase(ConfigurationActivity.FILE_NAME, 0, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
-                "appwidgetid INTEGER, date TEXT, name TEXT, showName INTEGER);");
-        Cursor cursor = db.query("dates", new String[]{"appwidgetid", "date", "name", "showName"},
-                "appwidgetid = " + appWidgetId, null, null, null, null);
+        SQLiteDatabase db = ConfigurationActivity.getDatabase(context);
+        Cursor cursor = ConfigurationActivity.queryEverything(db, appWidgetId);
 
-        if (cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()) {
-            int dateColumn = cursor.getColumnIndex("date");
-            int nameColumn = cursor.getColumnIndex("name");
-            int showNameColumn = cursor.getColumnIndex("showName");
+        Countdown toReturn = ConfigurationActivity.fromCursor(cursor);
 
-            long millis = Long.parseLong(cursor.getString(dateColumn));
-            String name = cursor.getString(nameColumn);
-            boolean showName = cursor.getInt(showNameColumn) == 1;
-
-            Countdown toReturn = new Countdown(name, showName, millis);
-
-            cursor.close();
-            db.close();
-            return toReturn;
-        }
-
-        if (cursor != null) {
-            cursor.close();
-        }
+        cursor.close();
         db.close();
-        return null;
+        return toReturn;
     }
 
-    public static String diffInString(Calendar current, Calendar date) {
+    public static String diffInString(Calendar current, Calendar date, boolean showDays, boolean showHours, boolean showMinutes) {
         long diffInMillis = date.getTimeInMillis() - current.getTimeInMillis();
         boolean negative = false;
 
@@ -99,22 +83,27 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         Calendar diff = Calendar.getInstance();
         diff.setTimeInMillis(diffInMillis);
 
-        final int YEARS = diff.get(Calendar.YEAR) - 1970;
-        final int YEARS_IN_DAYS = (int) (YEARS * 365.242);
-        final int DAYS = diff.get(Calendar.DAY_OF_YEAR) + YEARS_IN_DAYS - 1;
-        final int HOURS = diff.get(Calendar.HOUR_OF_DAY);
-        final int MINUTES = diff.get(Calendar.MINUTE);
+        int YEARS = diff.get(Calendar.YEAR) - 1970;
+        int YEARS_IN_DAYS = (int) (YEARS * 365.242);
+        int DAYS = diff.get(Calendar.DAY_OF_YEAR) + YEARS_IN_DAYS - 1;
+        int HOURS = diff.get(Calendar.HOUR_OF_DAY);
+        int MINUTES = diff.get(Calendar.MINUTE);
 
-        if (negative) {
-            return "-" + DAYS + "d" + HOURS + "h" + MINUTES + "m";
-        } else {
-            return DAYS + "d" + HOURS + "h" + MINUTES + "m";
-        }
+        if (!showDays) HOURS = HOURS + DAYS * 24;
+        if (!showHours) MINUTES = MINUTES + HOURS * 60;
+
+        StringBuilder result = new StringBuilder();
+        if (negative) result.append("-");
+        if (showDays) result.append(DAYS).append("d");
+        if (showHours) result.append(HOURS).append("h");
+        if (showMinutes) result.append(MINUTES).append("m");
+        return result.toString();
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
+
         if (intent.getAction().equals(COUNTDOWN_WIDGET_UPDATE)) {
             ComponentName componentName = new ComponentName(context.getPackageName(), getClass().getName());
             AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
@@ -124,11 +113,6 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
                 appWidgetManager.updateAppWidget(appWidgetId, views);
             }
         }
-    }
-
-    @Override
-    public void onEnabled(Context context) {
-        super.onEnabled(context);
     }
 
     @Override
