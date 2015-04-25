@@ -142,6 +142,12 @@
 
             </LinearLayout>
         </LinearLayout>
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/choose_from_existing_button_text"
+            android:onClick="onClickChooseFromExisting" />
     </LinearLayout>
 
     <LinearLayout
@@ -169,5 +175,6 @@
             android:text="@string/apply" />
 
     </LinearLayout>
+
 
 </LinearLayout>

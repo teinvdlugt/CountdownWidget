@@ -1,10 +1,12 @@
 package com.teinproductions.tein.countdownwidget;
 
 import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -12,7 +14,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.DatePicker;
@@ -111,25 +116,36 @@ public class ConfigurationActivity extends AppCompatActivity {
 
         if (cursor.getCount() > 0 && cursor.moveToFirst()) {
             Countdown countdown = Countdown.fromCursor(cursor);
-
-            nameET.setText(countdown.getName());
-            nameET.setSelection(nameET.length());
-            date.setTimeInMillis(countdown.getMillis());
-            showNameCheckBox.setChecked(countdown.isShowName());
-            showDaysCheckBox.setChecked(countdown.isShowDays());
-            showHoursCheckBox.setChecked(countdown.isShowHours());
-            showMinutesCheckBox.setChecked(countdown.isShowMinutes());
-            capitalsCheckBox.setChecked(countdown.isUseCapitals());
-            textSizeSeekBar.setProgress(countdown.getTextSize() - 12);
-            textSizeTextView.setText(getString(R.string.text_size) + ": " + (textSizeSeekBar.getProgress() + 12));
+            loadCountdown(countdown, true);
         } else {
             date.setTimeInMillis(System.currentTimeMillis());
             textSizeTextView.setText(getString(R.string.text_size) + ": 56");
+            updateButtonTexts();
         }
 
         cursor.close();
         db.close();
+    }
+
+    /**
+     * @param countdown The Countdown object to load onto the views
+     * @param changeFontSize If false, the font size will not be changed
+     */
+    private void loadCountdown(Countdown countdown, boolean changeFontSize) {
+        nameET.setText(countdown.getName());
+        nameET.setSelection(nameET.length());
+        date.setTimeInMillis(countdown.getMillis());
         updateButtonTexts();
+        showNameCheckBox.setChecked(countdown.isShowName());
+        showDaysCheckBox.setChecked(countdown.isShowDays());
+        showHoursCheckBox.setChecked(countdown.isShowHours());
+        showMinutesCheckBox.setChecked(countdown.isShowMinutes());
+        capitalsCheckBox.setChecked(countdown.isUseCapitals());
+
+        if (changeFontSize) {
+            textSizeSeekBar.setProgress(countdown.getTextSize() - 12);
+            textSizeTextView.setText(getString(R.string.text_size) + ": " + (textSizeSeekBar.getProgress() + 12));
+        }
     }
 
     public void onClickPickDate(View view) {
@@ -232,6 +248,22 @@ public class ConfigurationActivity extends AppCompatActivity {
         finish();
     }
 
+    public void onClickChooseFromExisting(View view) {
+        final Countdown[] countdowns = Countdown.allCountdowns(this);
+        String[] names = new String[countdowns.length];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = countdowns[i].getName();
+        }
+
+        new AlertDialog.Builder(this)
+                .setAdapter(new CountdownAdapter(this, countdowns), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int position) {
+                        loadCountdown(countdowns[position], false);
+                    }
+                }).create().show();
+    }
+
     public static SQLiteDatabase getDatabase(Context context) {
         SQLiteDatabase db = context.openOrCreateDatabase(FILE_NAME, 0, null);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + "(" +
@@ -244,5 +276,29 @@ public class ConfigurationActivity extends AppCompatActivity {
     public static Cursor queryEverything(SQLiteDatabase db, int appWidgetId) {
         return db.query(TABLE_NAME, null,
                 APPWIDGET_ID + "=" + appWidgetId, null, null, null, null);
+    }
+
+    private static class CountdownAdapter extends ArrayAdapter {
+
+        Countdown[] countdowns;
+
+        public CountdownAdapter(Context context, Countdown[] countdowns) {
+            super(context, R.layout.countdown_list_item);
+            this.countdowns = countdowns;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            View view = LayoutInflater.from(getContext()).inflate(R.layout.countdown_list_item, parent, false);
+
+            ((TextView) view.findViewById(R.id.name_textView)).setText(countdowns[position].getName());
+
+            return view;
+        }
+
+        @Override
+        public int getCount() {
+            return countdowns.length;
+        }
     }
 }

@@ -2,8 +2,10 @@ package com.teinproductions.tein.countdownwidget;
 
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.CursorIndexOutOfBoundsException;
+import android.database.sqlite.SQLiteDatabase;
 
 public class Countdown {
 
@@ -65,6 +67,42 @@ public class Countdown {
         } catch (CursorIndexOutOfBoundsException e) {
             return null;
         }
+    }
+
+    public static Countdown[] allCountdowns(Context context) {
+        SQLiteDatabase db = ConfigurationActivity.getDatabase(context);
+        Cursor cursor = db.query(ConfigurationActivity.TABLE_NAME, null, null, null, null, null, ConfigurationActivity.NAME);
+
+        Countdown[] countdowns = new Countdown[cursor.getCount()];
+
+        for (int i = 0; i < countdowns.length; i++) {
+            cursor.moveToPosition(i);
+
+            int millisColumn = cursor.getColumnIndex(ConfigurationActivity.MILLIS);
+            int nameColumn = cursor.getColumnIndex(ConfigurationActivity.NAME);
+            int showNameColumn = cursor.getColumnIndex(ConfigurationActivity.SHOW_NAME);
+            int showDaysColumn = cursor.getColumnIndex(ConfigurationActivity.SHOW_DAYS);
+            int showHoursColumn = cursor.getColumnIndex(ConfigurationActivity.SHOW_HOURS);
+            int showMinutesColumn = cursor.getColumnIndex(ConfigurationActivity.SHOW_MINUTES);
+            int useCapitalsColumn = cursor.getColumnIndex(ConfigurationActivity.USE_CAPITALS);
+            int textSizeColumn = cursor.getColumnIndex(ConfigurationActivity.TEXT_SIZE);
+
+            long millis = Long.parseLong(cursor.getString(millisColumn));
+            String name = cursor.getString(nameColumn);
+            boolean showName = cursor.getInt(showNameColumn) != 0;
+            boolean showDays = cursor.getInt(showDaysColumn) != 0;
+            boolean showHours = cursor.getInt(showHoursColumn) != 0;
+            boolean showMinutes = cursor.getInt(showMinutesColumn) != 0;
+            boolean useCapitals = cursor.getInt(useCapitalsColumn) != 0;
+            int textSize = cursor.getInt(textSizeColumn);
+
+            countdowns[i] = new Countdown(millis, name, showName, showDays, showHours, showMinutes, useCapitals, textSize);
+        }
+
+        cursor.close();
+        db.close();
+
+        return countdowns;
     }
 
     public int getTextSize() {
