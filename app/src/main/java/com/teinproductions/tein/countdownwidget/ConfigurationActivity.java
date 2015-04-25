@@ -22,6 +22,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.RemoteViews;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -292,6 +293,12 @@ public class ConfigurationActivity extends AppCompatActivity {
             View view = LayoutInflater.from(getContext()).inflate(R.layout.countdown_list_item, parent, false);
 
             ((TextView) view.findViewById(R.id.name_textView)).setText(countdowns[position].getName());
+            view.findViewById(R.id.deleteButton).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                }
+            });
 
             return view;
         }
