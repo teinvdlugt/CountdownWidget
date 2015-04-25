@@ -4,12 +4,11 @@ import android.app.AlarmManager;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.appwidget.AppWidgetManager;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.CursorIndexOutOfBoundsException;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -19,6 +18,8 @@ import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.RemoteViews;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
@@ -27,12 +28,24 @@ import java.util.Calendar;
 public class ConfigurationActivity extends AppCompatActivity {
 
     static final String FILE_NAME = "database";
+    static final String TABLE_NAME = "dates";
+    static final String APPWIDGET_ID = "appwidgetid";
+    static final String MILLIS = "millis";
+    static final String NAME = "name";
+    static final String SHOW_NAME = "showName";
+    static final String SHOW_DAYS = "showDays";
+    static final String SHOW_HOURS = "showHours";
+    static final String SHOW_MINUTES = "showMinutes";
+    static final String USE_CAPITALS = "useCapitals";
+    static final String TEXT_SIZE = "textSize";
 
     private int appWidgetId;
 
     private Button pickDate, pickTime;
     private EditText nameET;
     private CheckBox showNameCheckBox, showDaysCheckBox, showHoursCheckBox, showMinutesCheckBox, capitalsCheckBox;
+    private TextView textSizeTextView;
+    private SeekBar textSizeSeekBar;
 
     private final Calendar date = Calendar.getInstance();
 
@@ -45,14 +58,7 @@ public class ConfigurationActivity extends AppCompatActivity {
         // If the Activity is dismissed, the widget mustn't update
         setResult(RESULT_CANCELED);
 
-        pickDate = (Button) findViewById(R.id.pick_date_button);
-        pickTime = (Button) findViewById(R.id.pick_time_button);
-        nameET = (EditText) findViewById(R.id.name_editText);
-        showNameCheckBox = (CheckBox) findViewById(R.id.showName_checkBox);
-        showDaysCheckBox = (CheckBox) findViewById(R.id.showDays_checkBox);
-        showHoursCheckBox = (CheckBox) findViewById(R.id.showHours_checkBox);
-        showMinutesCheckBox = (CheckBox) findViewById(R.id.showMinutes_checkBox);
-        capitalsCheckBox = (CheckBox) findViewById(R.id.capitals_checkBox);
+        initViews();
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
@@ -64,12 +70,47 @@ public class ConfigurationActivity extends AppCompatActivity {
         restoreValues();
     }
 
+    private void initViews() {
+        pickDate = (Button) findViewById(R.id.pick_date_button);
+        pickTime = (Button) findViewById(R.id.pick_time_button);
+        nameET = (EditText) findViewById(R.id.name_editText);
+        showNameCheckBox = (CheckBox) findViewById(R.id.showName_checkBox);
+        showDaysCheckBox = (CheckBox) findViewById(R.id.showDays_checkBox);
+        showHoursCheckBox = (CheckBox) findViewById(R.id.showHours_checkBox);
+        showMinutesCheckBox = (CheckBox) findViewById(R.id.showMinutes_checkBox);
+        capitalsCheckBox = (CheckBox) findViewById(R.id.capitals_checkBox);
+        textSizeSeekBar = (SeekBar) findViewById(R.id.textSize_seekBar);
+        textSizeTextView = (TextView) findViewById(R.id.textSize_textView);
+
+        if (Build.VERSION.SDK_INT < 16) {
+            textSizeTextView.setVisibility(View.GONE);
+            textSizeSeekBar.setVisibility(View.GONE);
+        } else {
+            textSizeSeekBar.setMax(64); // Max text size is 76sp
+            textSizeSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
+                    int textSize = progress + 12;
+                    textSizeTextView.setText(getString(R.string.text_size) + ": " + textSize);
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                }
+            });
+        }
+    }
+
     private void restoreValues() {
         SQLiteDatabase db = getDatabase(this);
         Cursor cursor = queryEverything(db, appWidgetId);
 
         if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-            Countdown countdown = fromCursor(cursor);
+            Countdown countdown = Countdown.fromCursor(cursor);
 
             nameET.setText(countdown.getName());
             nameET.setSelection(nameET.length());
@@ -79,8 +120,11 @@ public class ConfigurationActivity extends AppCompatActivity {
             showHoursCheckBox.setChecked(countdown.isShowHours());
             showMinutesCheckBox.setChecked(countdown.isShowMinutes());
             capitalsCheckBox.setChecked(countdown.isUseCapitals());
+            textSizeSeekBar.setProgress(countdown.getTextSize() - 12);
+            textSizeTextView.setText(getString(R.string.text_size) + ": " + (textSizeSeekBar.getProgress() + 12));
         } else {
             date.setTimeInMillis(System.currentTimeMillis());
+            textSizeTextView.setText(getString(R.string.text_size) + ": 56");
         }
 
         cursor.close();
@@ -144,24 +188,23 @@ public class ConfigurationActivity extends AppCompatActivity {
             return;
         }
 
-        final String name = nameET.getText().toString();
         final long millis = date.getTimeInMillis();
+        final String name = nameET.getText().toString();
         final boolean showName = showNameCheckBox.isChecked();
         final boolean showDays = showDaysCheckBox.isChecked();
         final boolean showHours = showHoursCheckBox.isChecked();
         final boolean showMinutes = showMinutesCheckBox.isChecked();
         final boolean useCapitals = capitalsCheckBox.isChecked();
+        final int textSize = textSizeSeekBar.getProgress() + 12;
 
-        apply(name, millis, showName, showDays, showHours, showMinutes, useCapitals);
+        apply(new Countdown(millis, name, showName, showDays, showHours, showMinutes, useCapitals, textSize));
     }
 
-    private void apply(String name, long millis, boolean showName,
-                       boolean showDays, boolean showHours, boolean showMinutes, boolean useCapitals) {
+    private void apply(Countdown countdown) {
         // ALTER DATABASE
         SQLiteDatabase db = getDatabase(this);
-        db.delete("dates", "appwidgetid=" + appWidgetId, null);
-        db.insert("dates", null, createContentValues(
-                appWidgetId, name, millis, showName, showDays, showHours, showMinutes, useCapitals));
+        db.delete(TABLE_NAME, APPWIDGET_ID + "=" + appWidgetId, null);
+        db.insert(TABLE_NAME, null, countdown.toContentValues(appWidgetId));
         db.close();
 
         // UPDATE WIDGET
@@ -191,55 +234,15 @@ public class ConfigurationActivity extends AppCompatActivity {
 
     public static SQLiteDatabase getDatabase(Context context) {
         SQLiteDatabase db = context.openOrCreateDatabase(FILE_NAME, 0, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS dates(" +
-                "appwidgetid INTEGER, date TEXT, name TEXT, showName INTEGER, " +
-                "showDays INTEGER, showHours INTEGER, showMinutes INTEGER, useCapitals INTEGER);");
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + "(" +
+                APPWIDGET_ID + " INTEGER," + MILLIS + " TEXT," + NAME + " TEXT," + SHOW_NAME + " INTEGER," +
+                SHOW_DAYS + " INTEGER," + SHOW_HOURS + " INTEGER," + SHOW_MINUTES + " INTEGER," +
+                USE_CAPITALS + " INTEGER," + TEXT_SIZE + " INTEGER);");
         return db;
     }
 
     public static Cursor queryEverything(SQLiteDatabase db, int appWidgetId) {
-        return db.query("dates", null,
-                "appwidgetid = " + appWidgetId, null, null, null, null);
-    }
-
-    public static Countdown fromCursor(Cursor cursor) {
-        try {
-            cursor.moveToFirst();
-
-            int dateColumn = cursor.getColumnIndex("date");
-            int nameColumn = cursor.getColumnIndex("name");
-            int showNameColumn = cursor.getColumnIndex("showName");
-            int showDaysColumn = cursor.getColumnIndex("showDays");
-            int showHoursColumn = cursor.getColumnIndex("showHours");
-            int showMinutesColumn = cursor.getColumnIndex("showMinutes");
-            int useCapitalsColumn = cursor.getColumnIndex("useCapitals");
-
-            long millis = Long.parseLong(cursor.getString(dateColumn));
-            String name = cursor.getString(nameColumn);
-            boolean showName = cursor.getInt(showNameColumn) != 0;
-            boolean showDays = cursor.getInt(showDaysColumn) != 0;
-            boolean showHours = cursor.getInt(showHoursColumn) != 0;
-            boolean showMinutes = cursor.getInt(showMinutesColumn) != 0;
-            boolean useCapitals = cursor.getInt(useCapitalsColumn) != 0;
-
-            return new Countdown(name, showName, showDays, showHours, showMinutes, useCapitals, millis);
-        } catch (CursorIndexOutOfBoundsException e) {
-            return null;
-        }
-    }
-
-    public static ContentValues createContentValues(int appWidgetId, String name, long millis, boolean showName,
-                                                    boolean showDays, boolean showHours, boolean showMinutes, boolean useCapitals) {
-        ContentValues values = new ContentValues();
-        values.put("appwidgetid", appWidgetId);
-        values.put("date", Long.toString(millis));
-        values.put("name", name);
-        values.put("showName", showName ? 1 : 0);
-        values.put("showDays", showDays ? 1 : 0);
-        values.put("showHours", showHours ? 1 : 0);
-        values.put("showMinutes", showMinutes ? 1 : 0);
-        values.put("useCapitals", useCapitals ? 1 : 0);
-
-        return values;
+        return db.query(TABLE_NAME, null,
+                APPWIDGET_ID + "=" + appWidgetId, null, null, null, null);
     }
 }

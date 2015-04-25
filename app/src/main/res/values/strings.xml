@@ -14,4 +14,7 @@
     <string name="minutes">Minutes</string>
     <string name="capital_letters">Capital Letters</string>
     <string name="no_date_set">No date set</string>
+    <string name="layout">Layout</string>
+    <string name="thin_font">Thin font</string>
+    <string name="text_size">Text size</string>
 </resources>

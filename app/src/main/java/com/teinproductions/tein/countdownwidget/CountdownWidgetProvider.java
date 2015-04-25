@@ -11,8 +11,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.net.Uri;
+import android.os.Build;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -32,6 +34,7 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         final boolean showHours = countdown.isShowHours();
         final boolean showMinutes = countdown.isShowMinutes();
         final boolean useCapitals = countdown.isUseCapitals();
+        final int textSize = countdown.getTextSize();
 
         Calendar date = Calendar.getInstance();
         date.setTimeInMillis(countdown.getMillis());
@@ -50,6 +53,10 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.countdown_widget);
         views.setViewVisibility(R.id.name_textView, showName ? View.VISIBLE : View.GONE);
+        if (Build.VERSION.SDK_INT >= 16) {
+            views.setTextViewTextSize(R.id.countdown_textView, TypedValue.COMPLEX_UNIT_SP, textSize);
+            views.setTextViewTextSize(R.id.name_textView, TypedValue.COMPLEX_UNIT_SP, textSize / 2.5f);
+        }
         views.setTextViewText(R.id.name_textView, name);
         views.setTextViewText(R.id.countdown_textView, ss);
 
@@ -67,7 +74,7 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         SQLiteDatabase db = ConfigurationActivity.getDatabase(context);
         Cursor cursor = ConfigurationActivity.queryEverything(db, appWidgetId);
 
-        Countdown toReturn = ConfigurationActivity.fromCursor(cursor);
+        Countdown toReturn = Countdown.fromCursor(cursor);
 
         cursor.close();
         db.close();
@@ -75,7 +82,7 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
     }
 
     private static String diffInString(Calendar current, Calendar date, boolean showDays,
-                                      boolean showHours, boolean showMinutes, boolean useCapitals) {
+                                       boolean showHours, boolean showMinutes, boolean useCapitals) {
         long diffInMillis = date.getTimeInMillis() - current.getTimeInMillis();
         boolean negative = false;
 
