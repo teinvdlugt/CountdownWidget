@@ -6,7 +6,6 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
@@ -28,7 +27,9 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 
 public class ConfigurationActivity extends AppCompatActivity {
 
@@ -40,6 +41,8 @@ public class ConfigurationActivity extends AppCompatActivity {
     private CheckBox showNameCheckBox, showDaysCheckBox, showHoursCheckBox, showMinutesCheckBox, capitalsCheckBox;
     private TextView textSizeTextView;
     private SeekBar textSizeSeekBar;
+
+    private AlertDialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -268,35 +271,52 @@ public class ConfigurationActivity extends AppCompatActivity {
             return;
         }
 
-        new AlertDialog.Builder(this)
-                .setAdapter(new CountdownAdapter(this, countdowns), new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int position) {
-                        countdown = countdowns[position];
-                        appWidget.setCountdownId(countdown.getId());
-                        loadCountdownValues();
-                    }
-                }).create().show();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setAdapter(new CountdownAdapter(this, countdowns), null);
+        dialog = builder.create();
+        dialog.show();
     }
 
-    private static class CountdownAdapter extends ArrayAdapter {
+    private class CountdownAdapter extends ArrayAdapter {
 
-        Countdown[] countdowns;
+        ArrayList<Countdown> countdowns = new ArrayList<>();
 
         public CountdownAdapter(Context context, Countdown[] countdowns) {
             super(context, R.layout.countdown_list_item);
-            this.countdowns = countdowns;
+            Collections.addAll(this.countdowns, countdowns);
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            View view = LayoutInflater.from(getContext()).inflate(R.layout.countdown_list_item, parent, false);
+        public View getView(final int position, View convertView, ViewGroup parent) {
+            final View view = LayoutInflater.from(getContext()).inflate(R.layout.countdown_list_item, parent, false);
 
-            ((TextView) view.findViewById(R.id.name_textView)).setText(countdowns[position].getName());
-            view.findViewById(R.id.deleteButton).setOnClickListener(new View.OnClickListener() {
+            final TextView nameTextView = (TextView) view.findViewById(R.id.name_textView);
+            final ImageButton deleteButton = (ImageButton) view.findViewById(R.id.deleteButton);
+
+            view.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    countdown = countdowns.get(position);
+                    appWidget.setCountdownId(countdown.getId());
+                    loadCountdownValues();
+                    dialog.dismiss();
+                }
+            });
 
+            nameTextView.setText(countdowns.get(position).getName());
+
+            deleteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    int id = countdowns.remove(position).getId();
+
+                    SQLiteDatabase db = Countdown.getDatabase(ConfigurationActivity.this);
+                    db.delete(Countdown.COUNTDOWN_TABLE, Countdown.ID + "=" + id, null);
+
+                    notifyDataSetChanged();
+                    /*deleteButton.setEnabled(false);
+                    nameTextView.setTextColor(getResources().getColor(android.R.color.darker_gray));
+                    view.setClickable(false);*/
                 }
             });
 
@@ -305,7 +325,7 @@ public class ConfigurationActivity extends AppCompatActivity {
 
         @Override
         public int getCount() {
-            return countdowns.length;
+            return countdowns.size();
         }
     }
 }

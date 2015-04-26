@@ -2,26 +2,30 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:gravity="center_vertical">
+    android:layout_height="72dp">
 
     <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
         android:id="@+id/name_textView"
-        tools:text="Portugal"
-        android:padding="16dp" />
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="16dp"
+        android:layout_marginStart="16dp"
+        android:gravity="center"
+        android:textColor="@android:color/black"
+        android:textSize="16sp"
+        tools:text="Portugal" />
 
     <ImageButton
+        android:layout_centerVertical="true"
         android:id="@+id/deleteButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:src="@mipmap/ic_delete_black_36dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
         android:background="?android:attr/selectableItemBackground"
         android:contentDescription="@string/delete"
-        android:padding="16dp"/>
+        android:src="@mipmap/ic_delete_black_24dp" />
 
 </RelativeLayout>
