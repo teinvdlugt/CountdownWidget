@@ -18,4 +18,5 @@
     <string name="thin_font">Thin font</string>
     <string name="text_size">Text size</string>
     <string name="choose_from_existing_button_text">Or choose from existing…</string>
+    <string name="delete">Delete</string>
 </resources>
