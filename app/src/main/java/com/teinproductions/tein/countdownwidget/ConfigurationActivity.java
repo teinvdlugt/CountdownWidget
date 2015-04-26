@@ -8,7 +8,6 @@ import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,27 +31,14 @@ import java.util.Calendar;
 
 public class ConfigurationActivity extends AppCompatActivity {
 
-    static final String FILE_NAME = "database";
-    static final String TABLE_NAME = "dates";
-    static final String APPWIDGET_ID = "appwidgetid";
-    static final String MILLIS = "millis";
-    static final String NAME = "name";
-    static final String SHOW_NAME = "showName";
-    static final String SHOW_DAYS = "showDays";
-    static final String SHOW_HOURS = "showHours";
-    static final String SHOW_MINUTES = "showMinutes";
-    static final String USE_CAPITALS = "useCapitals";
-    static final String TEXT_SIZE = "textSize";
-
-    private int appWidgetId;
+    private AppWidget appWidget;
+    private Countdown countdown;
 
     private Button pickDate, pickTime;
     private EditText nameET;
     private CheckBox showNameCheckBox, showDaysCheckBox, showHoursCheckBox, showMinutesCheckBox, capitalsCheckBox;
     private TextView textSizeTextView;
     private SeekBar textSizeSeekBar;
-
-    private final Calendar date = Calendar.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,15 +50,10 @@ public class ConfigurationActivity extends AppCompatActivity {
         setResult(RESULT_CANCELED);
 
         initViews();
-
-        Bundle extras = getIntent().getExtras();
-        if (extras != null) {
-            appWidgetId = extras.getInt(
-                    AppWidgetManager.EXTRA_APPWIDGET_ID,
-                    AppWidgetManager.INVALID_APPWIDGET_ID);
-        }
-
-        restoreValues();
+        initAppWidget();
+        initCountdown();
+        loadCountdownValues();
+        loadAppWidgetValues();
     }
 
     private void initViews() {
@@ -110,55 +91,72 @@ public class ConfigurationActivity extends AppCompatActivity {
         }
     }
 
-    private void restoreValues() {
-        SQLiteDatabase db = getDatabase(this);
-        Cursor cursor = queryEverything(db, appWidgetId);
+    private int restoreAppWidgetId() {
+        int appWidgetId;
 
-        if (cursor.getCount() > 0 && cursor.moveToFirst()) {
-            Countdown countdown = Countdown.fromCursor(cursor);
-            loadCountdown(countdown, true);
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            appWidgetId = extras.getInt(
+                    AppWidgetManager.EXTRA_APPWIDGET_ID,
+                    AppWidgetManager.INVALID_APPWIDGET_ID);
+            if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+                Toast.makeText(this, "Something went wrong", Toast.LENGTH_SHORT).show();
+                finish();
+                return -1;
+            }
         } else {
-            date.setTimeInMillis(System.currentTimeMillis());
-            textSizeTextView.setText(getString(R.string.text_size) + ": 56");
-            updateButtonTexts();
+            Toast.makeText(this, "Something went wrong", Toast.LENGTH_SHORT).show();
+            finish();
+            return -1;
         }
 
-        cursor.close();
-        db.close();
+        return appWidgetId;
     }
 
-    /**
-     * @param countdown The Countdown object to load onto the views
-     * @param changeFontSize If false, the font size will not be changed
-     */
-    private void loadCountdown(Countdown countdown, boolean changeFontSize) {
+    private void initAppWidget() {
+        int appWidgetId = restoreAppWidgetId();
+        appWidget = AppWidget.fromId(this, appWidgetId);
+
+        if (appWidget == null) {
+            appWidget = new AppWidget(appWidgetId);
+        }
+    }
+
+    private void initCountdown() {
+        countdown = Countdown.fromId(this, appWidget.getCountdownId());
+
+        if (countdown == null) {
+            countdown = new Countdown();
+        }
+    }
+
+    private void loadCountdownValues() {
         nameET.setText(countdown.getName());
         nameET.setSelection(nameET.length());
-        date.setTimeInMillis(countdown.getMillis());
         updateButtonTexts();
         showNameCheckBox.setChecked(countdown.isShowName());
         showDaysCheckBox.setChecked(countdown.isShowDays());
         showHoursCheckBox.setChecked(countdown.isShowHours());
         showMinutesCheckBox.setChecked(countdown.isShowMinutes());
-        capitalsCheckBox.setChecked(countdown.isUseCapitals());
+    }
 
-        if (changeFontSize) {
-            textSizeSeekBar.setProgress(countdown.getTextSize() - 12);
-            textSizeTextView.setText(getString(R.string.text_size) + ": " + (textSizeSeekBar.getProgress() + 12));
-        }
+    private void loadAppWidgetValues() {
+        capitalsCheckBox.setChecked(appWidget.isUseCapitals());
+        textSizeSeekBar.setProgress(appWidget.getTextSize() - 12);
+        textSizeTextView.setText(getString(R.string.text_size) + ": " + (textSizeSeekBar.getProgress() + 12));
     }
 
     public void onClickPickDate(View view) {
         new DatePickerDialog(this, new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
-                date.set(Calendar.YEAR, year);
-                date.set(Calendar.MONTH, month);
-                date.set(Calendar.DAY_OF_MONTH, day);
+                countdown.date.set(Calendar.YEAR, year);
+                countdown.date.set(Calendar.MONTH, month);
+                countdown.date.set(Calendar.DAY_OF_MONTH, day);
 
                 updateButtonTexts();
             }
-        }, date.get(Calendar.YEAR), date.get(Calendar.MONTH), date.get(Calendar.DAY_OF_MONTH))
+        }, countdown.date.get(Calendar.YEAR), countdown.date.get(Calendar.MONTH), countdown.date.get(Calendar.DAY_OF_MONTH))
                 .show();
     }
 
@@ -166,25 +164,25 @@ public class ConfigurationActivity extends AppCompatActivity {
         new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
             @Override
             public void onTimeSet(TimePicker timePicker, int hour, int minute) {
-                date.set(Calendar.HOUR_OF_DAY, hour);
-                date.set(Calendar.MINUTE, minute);
+                countdown.date.set(Calendar.HOUR_OF_DAY, hour);
+                countdown.date.set(Calendar.MINUTE, minute);
 
                 updateButtonTexts();
             }
-        }, date.get(Calendar.HOUR_OF_DAY), date.get(Calendar.MINUTE), true)
+        }, countdown.date.get(Calendar.HOUR_OF_DAY), countdown.date.get(Calendar.MINUTE), true)
                 .show();
     }
 
     private void updateButtonTexts() {
         // Date
-        int YEAR = date.get(Calendar.YEAR);
-        int MONTH = date.get(Calendar.MONTH) + 1;
-        int DAY = date.get(Calendar.DAY_OF_MONTH);
+        int YEAR = countdown.date.get(Calendar.YEAR);
+        int MONTH = countdown.date.get(Calendar.MONTH) + 1;
+        int DAY = countdown.date.get(Calendar.DAY_OF_MONTH);
         pickDate.setText(DAY + " / " + MONTH + " / " + YEAR);
 
         // Time
-        int HOUR = date.get(Calendar.HOUR_OF_DAY);
-        int MINUTE = date.get(Calendar.MINUTE);
+        int HOUR = countdown.date.get(Calendar.HOUR_OF_DAY);
+        int MINUTE = countdown.date.get(Calendar.MINUTE);
         String hourStr = Integer.toString(HOUR);
         String minuteStr = Integer.toString(MINUTE);
 
@@ -204,23 +202,36 @@ public class ConfigurationActivity extends AppCompatActivity {
             return;
         }
 
-        final long millis = date.getTimeInMillis();
-        final String name = nameET.getText().toString();
-        final boolean showName = showNameCheckBox.isChecked();
-        final boolean showDays = showDaysCheckBox.isChecked();
-        final boolean showHours = showHoursCheckBox.isChecked();
-        final boolean showMinutes = showMinutesCheckBox.isChecked();
-        final boolean useCapitals = capitalsCheckBox.isChecked();
-        final int textSize = textSizeSeekBar.getProgress() + 12;
+        countdown.setName(nameET.getText().toString());
+        countdown.setShowName(showNameCheckBox.isChecked());
+        countdown.setShowDays(showDaysCheckBox.isChecked());
+        countdown.setShowHours(showHoursCheckBox.isChecked());
+        countdown.setShowMinutes(showMinutesCheckBox.isChecked());
 
-        apply(new Countdown(millis, name, showName, showDays, showHours, showMinutes, useCapitals, textSize));
+        appWidget.setUseCapitals(capitalsCheckBox.isChecked());
+        appWidget.setTextSize(textSizeSeekBar.getProgress() + 12);
+
+        apply();
     }
 
-    private void apply(Countdown countdown) {
+    private void apply() {
         // ALTER DATABASE
-        SQLiteDatabase db = getDatabase(this);
-        db.delete(TABLE_NAME, APPWIDGET_ID + "=" + appWidgetId, null);
-        db.insert(TABLE_NAME, null, countdown.toContentValues(appWidgetId));
+        SQLiteDatabase db = Countdown.getDatabase(this);
+
+        // Delete the stored Countdowns with the same name as the current one
+        db.delete(Countdown.COUNTDOWN_TABLE, Countdown.NAME + "=\"" + countdown.getName() + "\"", null);
+        db.insert(Countdown.COUNTDOWN_TABLE, Countdown.NAME, countdown.toContentValues());
+
+        // The Countdown object must have an id, so it must be first stored and after that the
+        // id must be obtained.
+        Countdown tempCountdown = Countdown.fromName(this, countdown.getName());
+        int countdownId = tempCountdown.getId();
+        appWidget.setCountdownId(countdownId);
+
+        // I don't use db.update() because maybe the appwidget with this id doesn't yet exist
+        db.delete(AppWidget.APPWIDGET_TABLE, AppWidget.APPWIDGET_ID + "=" + appWidget.appWidgetId, null);
+        db.insert(AppWidget.APPWIDGET_TABLE, null, appWidget.toContentValues());
+
         db.close();
 
         // UPDATE WIDGET
@@ -228,15 +239,15 @@ public class ConfigurationActivity extends AppCompatActivity {
 
         // FINISH
         Intent result = new Intent();
-        result.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        result.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidget.appWidgetId);
         setResult(RESULT_OK, result);
         finish();
     }
 
     private void setAlarm() {
         AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(this);
-        RemoteViews views = CountdownWidgetProvider.updateWidget(this, appWidgetId);
-        appWidgetManager.updateAppWidget(appWidgetId, views);
+        RemoteViews views = CountdownWidgetProvider.updateWidget(this, appWidget.appWidgetId);
+        appWidgetManager.updateAppWidget(appWidget.appWidgetId, views);
 
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         alarmManager.setRepeating(AlarmManager.RTC,
@@ -249,33 +260,22 @@ public class ConfigurationActivity extends AppCompatActivity {
     }
 
     public void onClickChooseFromExisting(View view) {
-        final Countdown[] countdowns = Countdown.allCountdowns(this);
-        String[] names = new String[countdowns.length];
-        for (int i = 0; i < names.length; i++) {
-            names[i] = countdowns[i].getName();
+        final Countdown[] countdowns = Countdown.allAvailableCountdowns(this);
+
+        if (countdowns.length == 0) {
+            Toast.makeText(this, "There is nothing to choose from", Toast.LENGTH_SHORT).show();
+            return;
         }
 
         new AlertDialog.Builder(this)
                 .setAdapter(new CountdownAdapter(this, countdowns), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int position) {
-                        loadCountdown(countdowns[position], false);
+                        countdown = countdowns[position];
+                        appWidget.setCountdownId(countdown.getId());
+                        loadCountdownValues();
                     }
                 }).create().show();
-    }
-
-    public static SQLiteDatabase getDatabase(Context context) {
-        SQLiteDatabase db = context.openOrCreateDatabase(FILE_NAME, 0, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + "(" +
-                APPWIDGET_ID + " INTEGER," + MILLIS + " TEXT," + NAME + " TEXT," + SHOW_NAME + " INTEGER," +
-                SHOW_DAYS + " INTEGER," + SHOW_HOURS + " INTEGER," + SHOW_MINUTES + " INTEGER," +
-                USE_CAPITALS + " INTEGER," + TEXT_SIZE + " INTEGER);");
-        return db;
-    }
-
-    public static Cursor queryEverything(SQLiteDatabase db, int appWidgetId) {
-        return db.query(TABLE_NAME, null,
-                APPWIDGET_ID + "=" + appWidgetId, null, null, null, null);
     }
 
     private static class CountdownAdapter extends ArrayAdapter {

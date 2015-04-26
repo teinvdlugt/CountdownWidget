@@ -7,7 +7,6 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.net.Uri;
@@ -25,24 +24,21 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
     private static final String COUNTDOWN_WIDGET_UPDATE = "com.teinproductions.tein.countdownwidget.COUNTDOWN_WIDGET_UPDATE";
 
     public static RemoteViews updateWidget(Context context, int appWidgetId) throws NullPointerException, SQLiteException {
-        Countdown countdown = fetchValues(context, appWidgetId);
-        if (countdown == null) return null;
+        AppWidget appWidget = AppWidget.fromId(context, appWidgetId);
+        Countdown countdown = Countdown.fromId(context, appWidget.getCountdownId());
 
         final boolean showName = countdown.isShowName();
         final String name = countdown.getName();
         final boolean showDays = countdown.isShowDays();
         final boolean showHours = countdown.isShowHours();
         final boolean showMinutes = countdown.isShowMinutes();
-        final boolean useCapitals = countdown.isUseCapitals();
-        final int textSize = countdown.getTextSize();
-
-        Calendar date = Calendar.getInstance();
-        date.setTimeInMillis(countdown.getMillis());
+        final boolean useCapitals = appWidget.isUseCapitals();
+        final int textSize = appWidget.getTextSize();
 
         Calendar current = Calendar.getInstance();
         current.setTimeInMillis(System.currentTimeMillis());
 
-        String diff = diffInString(current, date, showDays, showHours, showMinutes, useCapitals);
+        String diff = diffInString(current, countdown.date, showDays, showHours, showMinutes, useCapitals);
 
         SpannableString ss = new SpannableString(diff);
         for (String letter : new String[]{"d", "h", "m", "D", "H", "M"}) {
@@ -68,17 +64,6 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.root, pendingIntent);
 
         return views;
-    }
-
-    private static Countdown fetchValues(Context context, int appWidgetId) {
-        SQLiteDatabase db = ConfigurationActivity.getDatabase(context);
-        Cursor cursor = ConfigurationActivity.queryEverything(db, appWidgetId);
-
-        Countdown toReturn = Countdown.fromCursor(cursor);
-
-        cursor.close();
-        db.close();
-        return toReturn;
     }
 
     private static String diffInString(Calendar current, Calendar date, boolean showDays,
@@ -127,6 +112,16 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
                 RemoteViews views = updateWidget(context, appWidgetId);
                 appWidgetManager.updateAppWidget(appWidgetId, views);
             }
+        }
+    }
+
+    @Override
+    public void onDeleted(Context context, int[] appWidgetIds) {
+        super.onDeleted(context, appWidgetIds);
+
+        for (int appWidgetId : appWidgetIds) {
+            SQLiteDatabase db = Countdown.getDatabase(context);
+            db.delete(AppWidget.APPWIDGET_TABLE, AppWidget.APPWIDGET_ID + "=" + appWidgetId, null);
         }
     }
 
