@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.text.SpannableString;
@@ -34,6 +35,8 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         final boolean showMinutes = countdown.isShowMinutes();
         final boolean useCapitals = appWidget.isUseCapitals();
         final int textSize = appWidget.getTextSize();
+        final int textColorGreyScale = appWidget.getTextColor();
+        final int textColor = Color.rgb(textColorGreyScale, textColorGreyScale, textColorGreyScale);
 
         Calendar current = Calendar.getInstance();
         current.setTimeInMillis(System.currentTimeMillis());
@@ -55,6 +58,8 @@ public class CountdownWidgetProvider extends AppWidgetProvider {
         }
         views.setTextViewText(R.id.name_textView, name);
         views.setTextViewText(R.id.countdown_textView, ss);
+        views.setTextColor(R.id.name_textView, textColor);
+        views.setTextColor(R.id.countdown_textView, textColor);
 
         Intent configIntent = new Intent(context, ConfigurationActivity.class);
         configIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);

@@ -154,9 +154,9 @@ public class Countdown {
                 SHOW_DAYS + " INTEGER," + SHOW_HOURS + " INTEGER," + SHOW_MINUTES + " INTEGER);");
 
         db.execSQL("CREATE TABLE IF NOT EXISTS " + AppWidget.APPWIDGET_TABLE + "(" +
-                AppWidget.APPWIDGET_ID + " INTEGER," + AppWidget.USE_CAPITALS + " INTEGER," + AppWidget.TEXT_SIZE + " INTEGER," +
-                AppWidget.COUNTDOWN_ID + " INTEGER, FOREIGN KEY(" + AppWidget.COUNTDOWN_ID +
-                ") REFERENCES " + COUNTDOWN_TABLE + "(" + ID + "));");
+                AppWidget.APPWIDGET_ID + " INTEGER," + AppWidget.USE_CAPITALS + " INTEGER," + AppWidget.TEXT_SIZE +
+                " INTEGER," + AppWidget.TEXT_COLOR + " INTEGER," + AppWidget.COUNTDOWN_ID + " INTEGER, FOREIGN KEY(" +
+                AppWidget.COUNTDOWN_ID + ") REFERENCES " + COUNTDOWN_TABLE + "(" + ID + "));");
 
         return db;
     }

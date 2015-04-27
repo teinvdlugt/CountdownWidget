@@ -14,6 +14,7 @@ public class AppWidget {
     static final String APPWIDGET_ID = "appwidget_id";
     static final String USE_CAPITALS = "use_capitals";
     static final String TEXT_SIZE = "text_size";
+    static final String TEXT_COLOR = "text_color";
     static final String COUNTDOWN_ID = "countdown_id";
 
     public static AppWidget fromId(Context context, int appWidgetId) {
@@ -33,14 +34,16 @@ public class AppWidget {
             int appWidgetIdColumn = cursor.getColumnIndex(APPWIDGET_ID);
             int useCapitalsColumn = cursor.getColumnIndex(USE_CAPITALS);
             int textSizeColumn = cursor.getColumnIndex(TEXT_SIZE);
+            int textColorColumn = cursor.getColumnIndex(TEXT_COLOR);
             int countdownIdColumn = cursor.getColumnIndex(COUNTDOWN_ID);
 
             int appWidgetId = cursor.getInt(appWidgetIdColumn);
             boolean useCapitals = cursor.getInt(useCapitalsColumn) != 0;
             int textSize = cursor.getInt(textSizeColumn);
+            int textColor = cursor.getInt(textColorColumn);
             int countdownId = cursor.getInt(countdownIdColumn);
 
-            return new AppWidget(appWidgetId, countdownId, textSize, useCapitals);
+            return new AppWidget(appWidgetId, countdownId, textSize, textColor, useCapitals);
         } catch (SQLiteException | CursorIndexOutOfBoundsException e) {
             return null;
         }
@@ -64,25 +67,35 @@ public class AppWidget {
         values.put(APPWIDGET_ID, appWidgetId);
         values.put(USE_CAPITALS, useCapitals ? 1 : 0);
         values.put(TEXT_SIZE, textSize);
+        values.put(TEXT_COLOR, textColor);
         values.put(COUNTDOWN_ID, countdownId);
 
         return values;
     }
 
 
-    private int countdownId = -1, textSize = 56;
+    private int countdownId = -1, textSize = 56, textColor = 255;
     public final int appWidgetId;
     private boolean useCapitals = false;
 
-    public AppWidget(int appWidgetId, int countdownId, int textSize, boolean useCapitals) {
+    public AppWidget(int appWidgetId, int countdownId, int textSize, int textColor, boolean useCapitals) {
         this.appWidgetId = appWidgetId;
         this.countdownId = countdownId;
         this.textSize = textSize;
+        this.textColor = textColor;
         this.useCapitals = useCapitals;
     }
 
     public AppWidget(int appWidgetId) {
         this.appWidgetId = appWidgetId;
+    }
+
+    public int getTextColor() {
+        return textColor;
+    }
+
+    public void setTextColor(int textColor) {
+        this.textColor = textColor;
     }
 
     public int getCountdownId() {

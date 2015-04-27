@@ -8,6 +8,8 @@ import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -21,6 +23,7 @@ import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RemoteViews;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -40,7 +43,8 @@ public class ConfigurationActivity extends AppCompatActivity {
     private EditText nameET;
     private CheckBox showNameCheckBox, showDaysCheckBox, showHoursCheckBox, showMinutesCheckBox, capitalsCheckBox;
     private TextView textSizeTextView;
-    private SeekBar textSizeSeekBar;
+    private SeekBar textSizeSeekBar, textColorSeekBar;
+    private ImageView textColorImageView;
 
     private AlertDialog dialog;
 
@@ -71,6 +75,23 @@ public class ConfigurationActivity extends AppCompatActivity {
         capitalsCheckBox = (CheckBox) findViewById(R.id.capitals_checkBox);
         textSizeSeekBar = (SeekBar) findViewById(R.id.textSize_seekBar);
         textSizeTextView = (TextView) findViewById(R.id.textSize_textView);
+        textColorImageView = (ImageView) findViewById(R.id.textColor_imageView);
+        textColorSeekBar = (SeekBar) findViewById(R.id.textColor_seekBar);
+
+        textColorSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
+                textColorImageView.setBackgroundColor(Color.rgb(progress, progress, progress));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
 
         if (Build.VERSION.SDK_INT < 16) {
             textSizeTextView.setVisibility(View.GONE);
@@ -148,6 +169,9 @@ public class ConfigurationActivity extends AppCompatActivity {
         capitalsCheckBox.setChecked(appWidget.isUseCapitals());
         textSizeSeekBar.setProgress(appWidget.getTextSize() - 12);
         textSizeTextView.setText(getString(R.string.text_size) + ": " + (textSizeSeekBar.getProgress() + 12));
+        int greyScale = appWidget.getTextColor();
+        textColorImageView.setBackgroundColor(Color.rgb(greyScale, greyScale, greyScale));
+        textColorSeekBar.setProgress(greyScale);
     }
 
     public void onClickPickDate(View view) {
@@ -214,6 +238,7 @@ public class ConfigurationActivity extends AppCompatActivity {
 
         appWidget.setUseCapitals(capitalsCheckBox.isChecked());
         appWidget.setTextSize(textSizeSeekBar.getProgress() + 12);
+        appWidget.setTextColor(textColorSeekBar.getProgress());
 
         apply();
     }
@@ -314,9 +339,6 @@ public class ConfigurationActivity extends AppCompatActivity {
                     db.delete(Countdown.COUNTDOWN_TABLE, Countdown.ID + "=" + id, null);
 
                     notifyDataSetChanged();
-                    /*deleteButton.setEnabled(false);
-                    nameTextView.setTextColor(getResources().getColor(android.R.color.darker_gray));
-                    view.setClickable(false);*/
                 }
             });
 

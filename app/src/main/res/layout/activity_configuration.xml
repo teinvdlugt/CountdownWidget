@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -140,14 +141,41 @@
                     android:layout_height="wrap_content"
                     android:progress="44" />
 
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/text_color"
+                        android:textAppearance="?android:attr/textAppearanceSmall" />
+
+                    <ImageView
+                        android:id="@+id/textColor_imageView"
+                        android:layout_width="24dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginLeft="16dp"
+                        android:layout_marginRight="16dp"
+                        android:contentDescription="@string/preview_of_the_text_color"
+                        android:background="@android:color/white"/>
+                </LinearLayout>
+
+                <SeekBar
+                    android:id="@+id/textColor_seekBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="255"
+                    android:progress="255" />
+
             </LinearLayout>
         </LinearLayout>
 
         <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/choose_from_existing_button_text"
-            android:onClick="onClickChooseFromExisting" />
+            android:onClick="onClickChooseFromExisting"
+            android:text="@string/choose_from_existing_button_text" />
     </LinearLayout>
 
     <LinearLayout
